@@ -31,8 +31,7 @@ echo "Job Name is:  ${NODE_NAME}"
     def mavenHome = tool name: 'maven3.8.4'
     
     try{
-    }//try closing
-    
+   
     // Get the code from GitHub repository
     stage('checkoutCode'){
         git branch: 'development', credentialsId: 'd87e758c-ce92-4642-a7ac-42cf303c0cfc', url: 'https://github.com/shubhangiukkalkar/maven-web-application.git'
