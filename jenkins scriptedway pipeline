@@ -1,0 +1,64 @@
+def sendSlackNotificstions(String buildStatus = 'STARTED') {
+
+  buildStatus =  buildStatus ?: 'SUCCESSFUL'
+
+  // Default values
+  def colorName = 'RED'
+  def colorCode = '#FF0000'
+  def subject = "${buildStatus}: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'"
+  def summary = "${subject} (${env.BUILD_URL})"
+
+  // Override default values based on build status
+  if (buildStatus == 'STARTED') {
+    color = 'YELLOW'
+    colorCode = '#FFFF00'
+  } else if (buildStatus == 'SUCCESSFUL') {
+    color = 'GREEN'
+    colorCode = '#00FF00'
+  } else {
+    color = 'RED'
+    colorCode = '#FF0000'
+  }
+
+  // Send notifications
+  slackSend (color: colorCode, message: summary)
+}
+node{
+    
+echo "Job Name is:  ${JOB_NAME}"
+echo "Job Name is:  ${NODE_NAME}"
+    
+    def mavenHome = tool name: 'maven3.8.4'
+    
+    // Get the code from GitHub repository
+    stage('checkoutCode'){
+        git branch: 'development', credentialsId: 'd87e758c-ce92-4642-a7ac-42cf303c0cfc', url: 'https://github.com/shubhangiukkalkar/maven-web-application.git'
+    }
+    //Do the build using Maven Build tool
+    stage('Build'){
+        sh "${mavenHome}/bin/mvn clean package"
+    }
+    
+    //Execute the SonarQube Report
+    stage('ExecuteSonarQubeReport'){
+        sh "${mavenHome}/bin/mvn sonar:sonar"
+    }
+    
+    //Upload Artifacts into Artifactory repo
+    stage('UploadArtifactsintoNexus'){
+        sh "${mavenHome}/bin/mvn deploy"
+    }
+ 
+ //Deploy Application into tomcat Server
+stage('DeployApplicationIntoTomcatServer'){
+sshagent(['e337f789-6336-4e90-85a9-698d799543e5']) {
+sh "scp -o  StrictHostKeyChecking=no target/maven-web-application.war ec2-user@13.234.238.50:/opt/apache-tomcat-9.0.62/webapps/"
+}
+
+}   
+
+}
+
+    
+    
+    
