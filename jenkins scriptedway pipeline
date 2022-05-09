@@ -54,7 +54,7 @@ echo "Job Name is:  ${NODE_NAME}"
  //Deploy Application into tomcat Server
 stage('DeployApplicationIntoTomcatServer'){
 sshagent(['e337f789-6336-4e90-85a9-698d799543e5']) {
-sh "scp -o  StrictHostKeyChecking=no target/maven-web-application.war ec2-user@13.234.238.50:/opt/apache-tomcat-9.0.62/webapps/"
+sh "scp -o  StrictHostKeyChecking=no target/maven-web-application.war ec2-user@3.108.66.178:/opt/apache-tomcat-9.0.62/webapps/"
 }
 
 }   
