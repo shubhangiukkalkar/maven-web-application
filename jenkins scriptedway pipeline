@@ -1,5 +1,5 @@
-def sendSlackNotificstions(String buildStatus = 'STARTED') {
-
+def notifyBuild(String buildStatus = 'STARTED') {
+  // build status of null means successful
   buildStatus =  buildStatus ?: 'SUCCESSFUL'
 
   // Default values
@@ -23,52 +23,51 @@ def sendSlackNotificstions(String buildStatus = 'STARTED') {
   // Send notifications
   slackSend (color: colorCode, message: summary)
 }
+
 node{
-
-try{
-sendSlackNotifications('STARTED')
-    
-echo "Job Name is:  ${JOB_NAME}"
-echo "node Name is:  ${NODE_NAME}"
-    
-    def mavenHome = tool name: 'maven3.8.4'
-   
-    // Get the code from GitHub repository
-    stage('checkoutCode'){
-        git branch: 'development', credentialsId: 'd87e758c-ce92-4642-a7ac-42cf303c0cfc', url: 'https://github.com/shubhangiukkalkar/maven-web-application.git'
-    }
-    //Do the build using Maven Build tool
-    stage('Build'){
-        sh "${mavenHome}/bin/mvn clean package"
-    }
-    
-    //Execute the SonarQube Report
-    stage('ExecuteSonarQubeReport'){
-        sh "${mavenHome}/bin/mvn sonar:sonar"
-    }
-    
-    //Upload Artifacts into Artifactory repo
-    stage('UploadArtifactsintoNexus'){
-        sh "${mavenHome}/bin/mvn deploy"
-    }
+ try{
+notifyBuild(String buildStatus = 'STARTED')
+echo "the current lines are : ${env.BUILD_NUMBER}"
+echo "project name is ${env.JOB_NAME}"
+ echo "the build num is : ${env.BUILD_NUMBER}"
  
- //Deploy Application into tomcat Server
-stage('DeployApplicationIntoTomcatServer'){
-sshagent(['e337f789-6336-4e90-85a9-698d799543e5']) {
-sh "scp -o  StrictHostKeyChecking=no target/maven-web-application.war ec2-user@3.108.66.178:/opt/apache-tomcat-9.0.62/webapps/"
+ properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '5', artifactNumToKeepStr: '5', daysToKeepStr: '5', numToKeepStr: '5')), [$class: 'JobLocalConfiguration', changeReasonComment: ''], pipelineTriggers([githubPush()])])
+ 
+def mavenHome = tool name: 'maven 3.8.5'
+//getting code from git
+stage ('checkout'){
+git branch: 'development', credentialsId: 'caccfa2e-818e-4051-991d-0fa2580f332a', url: 'https://github.com/alexandar33/maven-web-application.git'
+}
+//building the code by using maven tool
+stage ('build'){
+sh "$mavenHome/bin/mvn clean package"
 }
 
-}   
-
-}
-}//Try Closing
-
-catch(e){
-currentBuild.result = "FAILED"
-}
-finally{
-
-sendSlackNotifications(currentBuild.result)
+//exicute sonar report
+stage ('create sonar report'){
+sh "$mavenHome/bin/mvn sonar:sonar"
 }
 
-}//Node closing   
+//create artfacr repo
+stage ('create artifact'){
+sh "$mavenHome/bin/mvn deploy"
+}
+
+//deploying appicatin to tom
+stage ('deploying'){
+sshagent(['2ada6c2e-cb8a-40e2-996c-352a1de4f0d9']) {
+   sh "scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@3.110.134.32:/opt/apache-tomcat-9.0.62/webapps/"
+}
+
+}
+
+}//try closing
+catch (e) {
+    // If there was an exception thrown, the build failed
+    currentBuild.result = "FAILED"
+    throw e
+  } finally {
+    // Success or failure, always send notifications
+    notifyBuild(currentBuild.result)
+  }
+}//node closing
