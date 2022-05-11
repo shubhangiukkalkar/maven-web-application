@@ -33,7 +33,7 @@ echo "project name is ${env.JOB_NAME}"
  
  properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '5', artifactNumToKeepStr: '5', daysToKeepStr: '5', numToKeepStr: '5')), [$class: 'JobLocalConfiguration', changeReasonComment: ''], pipelineTriggers([githubPush()])])
  
-def mavenHome = tool name: 'maven 3.8.5'
+def mavenHome = tool name: 'maven 3.8.4'
 //getting code from git
 stage ('checkout'){
 git branch: 'development', credentialsId: 'caccfa2e-818e-4051-991d-0fa2580f332a', url: 'https://github.com/alexandar33/maven-web-application.git'
